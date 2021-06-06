@@ -1,77 +1,103 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:restaurant_app/sample.dart';
+import 'package:restaurant_app/model/restaurant.dart';
+import 'package:restaurant_app/detail_screen.dart';
 
-void main() => runApp(MaterialApp(
-      theme: ThemeData(
-        primaryColor: Colors.red,
-        accentColor: Colors.orangeAccent,
-        primarySwatch: Colors.red,
-      ),
-      home: MainApp(),
-    ));
-
-class MainApp extends StatefulWidget {
-  @override
-  _MainAppState createState() => _MainAppState();
+void main() {
+  runApp(MyApp());
 }
 
-class _MainAppState extends State<MainApp> {
-  String _jsonContent = "";
+class MyApp extends StatelessWidget {
+  @override
+  
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Restaurant App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      initialRoute: NewsListPage.routeName,
+      routes: {
+        NewsListPage.routeName: (context) => NewsListPage(),
+        DetailScreen.routeName: (context) => DetailScreen(
+              restaurant: ModalRoute.of(context).settings.arguments,
+            ),
+      },
+    );
+  }
+}
+
+class NewsListPage extends StatelessWidget {
+  static const routeName = '/restaurant_list';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Flutter JSON",
-          style: TextStyle(
-            color: Colors.white,
+      body: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.only(top: 50, left: 20),
+            color: Colors.green,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Restaurant',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 26),
+            ),
           ),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  // ignore: deprecated_member_use
-                  RaisedButton(
-                    onPressed: () {
-                      _loadSampleJson();
+          Container(
+            padding: EdgeInsets.only(bottom: 20, left: 20),
+            color: Colors.green,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Recommendation restaurant for you!',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<String>(
+              future:
+                  DefaultAssetBundle.of(context).loadString('assets/data.json'),
+              builder: (context, snapshot) {
+                final Welcome welcome = welcomeFromJson(snapshot.data);
+                if (snapshot.hasData) {
+                  return ListView.builder(
+                    itemCount: welcome.restaurants.length,
+                    itemBuilder: (context, index) {
+                      return _buildListItem(
+                          context, welcome.restaurants[index]);
                     },
-                    child: Text("Read JSON File"),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 12.0),
-                child: Text(
-                  _jsonContent,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
+                  );
+                } else if (snapshot.hasError) {
+                  return Text("error");
+                } else {
+                  return Text("loading");
+                }
+              },
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Future _loadSampleJson() async {
-    String jsonString = await rootBundle.loadString("assets/sample.json");
-    final jsonData = json.decode(jsonString);
-    Sample sample = Sample.fromJson(jsonData);
-    setState(() {
-      _jsonContent = "hallo : " + sample.toString();
-    });
+  Widget _buildListItem(BuildContext context, Restaurant restaurant) {
+    return ListTile(
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      leading: Image.network(
+        restaurant.pictureId,
+        width: 100,
+      ),
+      title: Text(restaurant.name),
+      subtitle: Text(restaurant.city),
+      trailing: Text(restaurant.rating.toString()),
+      onTap: () {
+        Navigator.pushNamed(context, DetailScreen.routeName,
+            arguments: restaurant);
+      },
+    );
   }
 }
